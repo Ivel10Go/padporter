@@ -1,0 +1,7 @@
+build/
+dist/
+.vs/
+.vscode/
+*.user
+# Real test projects are private user data and may contain third-party samples.
+testprojekte/
