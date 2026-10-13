@@ -25,7 +25,7 @@ public:
         bool enabled = true;
     };
 
-    static constexpr int kRowHeight = 56;
+    static constexpr int kRowHeight = 30;
 
     void setRows (std::vector<Row> newRows, const juce::String& emptyMessage);
     int idealHeight() const noexcept;
@@ -47,22 +47,28 @@ private:
     int hoverRow = -1;
 };
 
-/** Overlay on the display: projects on the connected device (import) and the local library (open). */
+/**
+    Display page with the projects on the connected device (import) and the local
+    library (open), plus export and project details.
+*/
 class ProjectsOverlay final : public juce::Component
 {
 public:
     explicit ProjectsOverlay (PadPorterProcessor& processor);
 
     void refresh();
-    std::function<void()> onClose;
+    std::function<void()> onExport;
+    std::function<void()> onDetails;
 
     void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
     PadPorterProcessor& processor;
-    juce::TextButton closeButton, rescanButton, folderButton;
-    juce::Viewport deviceView, libraryView;
+    juce::TextButton rescanButton, folderButton, exportButton, detailsButton;
+    juce::Viewport view;
+    juce::Component content;
+    juce::Label deviceHeading, libraryHeading;
     ProjectList deviceList, libraryList;
     std::vector<ProjectEntry> deviceEntries, libraryEntries;
     juce::String deviceStatus;

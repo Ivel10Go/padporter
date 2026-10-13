@@ -14,8 +14,9 @@ class PadPorterProcessor;
 /**
     The selected sequence split into parts: three chips (Drums, Melodie, Alles) that can be
     previewed and dragged into the host, and a lane view of all notes grouped by part.
+    Sized for the device display; names and hints are shown as tooltips.
 */
-class PatternView final : public juce::Component, private juce::Timer
+class PatternView final : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
 public:
     explicit PatternView (PadPorterProcessor& processor);

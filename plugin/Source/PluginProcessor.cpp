@@ -162,6 +162,13 @@ void PadPorterProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     const auto gain = masterDb <= kMinMasterDb + 0.05f ? 0.0f : juce::Decibels::decibelsToGain (masterDb);
     if (std::abs (gain - 1.0f) > 1.0e-6f)
         buffer.applyGain (gain);
+
+    for (int ch = 0; ch < juce::jmin (2, numChannels); ++ch)
+    {
+        const float peak = buffer.getMagnitude (ch, 0, numSamples);
+        if (peak > outputPeak[ch].load (std::memory_order_relaxed))
+            outputPeak[ch].store (peak, std::memory_order_relaxed);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +187,7 @@ void PadPorterProcessor::getStateInformation (juce::MemoryBlock& destData)
         state.setProperty ("selectedPad", selectedPad, nullptr);
         state.setProperty ("sequence", selectedSequence, nullptr);
         state.setProperty ("dragAudio", dragAsAudio, nullptr);
+        state.setProperty ("uiScale", editorScale.load(), nullptr);
 
         juce::ValueTree ovTree (kOverridesType);
         for (const auto& [index, ov] : overrides)
@@ -241,6 +249,7 @@ void PadPorterProcessor::setStateInformation (const void* data, int sizeInBytes)
     const int newPad = state.getProperty ("selectedPad", 0);
     const int newSequence = state.getProperty ("sequence", -1);
     const bool newDragAudio = state.getProperty ("dragAudio", true);
+    editorScale.store (static_cast<double> (state.getProperty ("uiScale", 0.0)));
 
     auto apply = [weak = selfRef, file, track, newBank, newPad, newSequence, newDragAudio, restored] {
         if (auto* self = weak.get())

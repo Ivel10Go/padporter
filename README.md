@@ -31,18 +31,24 @@ Die SD-Karte wird dabei nur gelesen. Vor dem Abziehen das Laufwerk in Windows au
 
 ## Benutzung
 
-1. **Open Project** klicken oder eine `.xpj`-Datei ins Fenster ziehen.
-2. Mit den Banks **A–H** wechselst du zwischen den 8 × 16 Pads.
-3. **Pad anklicken** spielt das Sample ab und wählt das Pad aus. Weiter oben im Pad geklickt heißt höhere Velocity.
-4. Rechts kannst du für das gewählte Pad Folgendes ändern:
-   - Tune, Level und Pan
-   - One-Shot oder Gate
-   - Mute Group
-   - Multi-Out-Ausgang
+Die Oberfläche ist dem Gerät nachgebaut: Jedes Bedienelement sitzt an derselben Stelle wie an der Hardware. Das Fenster lässt sich frei skalieren, die Proportionen bleiben erhalten.
 
-   Änderungen werden im Live-Set gespeichert. „Reset pad“ stellt die Projektwerte wieder her.
-5. **Sequences:** Eine Zeile ziehst du direkt in eine Ableton-Spur, daraus entsteht ein MIDI-Clip.
-6. **Export …** legt im gewählten Ordner einen Unterordner `<Projektname>` an mit:
+1. **Projekt öffnen:** Softkey **Projekte** über dem Display drücken (oder eine `.xpj`-Datei ins Fenster ziehen). Dort stehen die Projekte auf dem Gerät (**IMPORT**) und in der Bibliothek (**ÖFFNEN**).
+2. **SEQ** zeigt das Display mit drei Seiten, umgeschaltet über die drei Softkeys:
+   - **Sequenzen:** Liste aller Sequences. Eine Zeile ziehst du direkt in eine Ableton-Spur. Doppelklick öffnet das Pattern.
+   - **Pattern:** Chips **DRUMS / MELODIE / ALLES** zum Anhören (▶) und Ziehen; die Pad-Namen links ziehen einzelne Pads. **MIDI | AUDIO** wählt, was gezogen wird.
+   - **Projekte:** Gerät und Bibliothek, dazu **ORDNER**, **EXPORT** und **INFO** (Hinweise zum Projekt).
+3. **Pads anklicken** spielt das Sample ab und wählt das Pad aus. Weiter oben im Pad geklickt heißt höhere Velocity. **PAD BANK** schaltet die Banks A–H weiter; die aktive Bank leuchtet links neben dem Display.
+4. **SAMPLE** zeigt das gewählte Pad mit Wellenform. Die Softkeys ordnen es **Auto / Drums / Melodie** zu, **K1 / K2 / K3** stellen Tune, Level und Pan ein (geänderte Werte erscheinen blau). Änderungen werden im Live-Set gespeichert, **ERASE** stellt die Projektwerte wieder her.
+5. Weitere Tasten:
+   - **Datenrad** sowie **– / +**: Sequence (SEQ) bzw. Pad (SAMPLE) wählen
+   - **▶ / ■**: gewählte Sequence anhören bzw. stoppen
+   - **PAD FX**: Master-Kompressor des Geräts nachbilden (nur wenn er im Projekt aktiv ist)
+   - **MAIN VOLUME**: Lautstärke, **Fader**: Global Tune
+   - **SHIFT** rastet ein: + PAD BANK = Bank zurück, + Pad 16 = Projekte, + Pad 12 = Sequenzen, + Pad 5 = Kompressor
+
+   Tasten ohne Gegenstück in PadPorter (z. B. CHOP, TAP TEMPO, RECORD) sind nur abgebildet.
+6. **EXPORT** legt im gewählten Ordner einen Unterordner `<Projektname>` an mit:
    - `Samples/` (Kopien)
    - `MIDI/NN - <Sequence>.mid` (Typ 1, 960 PPQ, Tempo und Taktart)
    - `mapping.json` (Pad → Note → Sample → Parameter)

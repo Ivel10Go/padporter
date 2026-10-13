@@ -68,6 +68,13 @@ public:
     void resetOverride (int padIndex);
 
     void triggerPad (int padIndex, float velocity, bool noteOn);
+
+    /** Peak of the main output since the last call (for the LED meter). */
+    float takeOutputPeak (int channel) noexcept { return outputPeak[channel & 1].exchange (0.0f, std::memory_order_relaxed); }
+
+    /** Size of the editor relative to the front panel; 0 = fit to the screen. Saved with the set. */
+    double getEditorScale() const noexcept { return editorScale.load(); }
+    void setEditorScale (double scale) noexcept { editorScale.store (scale); }
     std::uint64_t getPadActivity (int half) const noexcept { return engine.getActivity (half); }
 
     /** Writes a MIDI file with one part (or one pad, padIndex >= 0) of a sequence for dragging into the host. */
@@ -148,6 +155,8 @@ private:
 
     int selectedSequence = 0;
     bool dragAsAudio = true;
+    std::atomic<double> editorScale { 0.0 };
+    std::atomic<float> outputPeak[2] {};
     std::atomic<double> currentSampleRate { 48000.0 };
     int previewSequence = -1;
     Part previewPart = Part::All;
