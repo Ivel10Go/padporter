@@ -28,8 +28,9 @@ target_sources(PadPorter PRIVATE
     Source/ui/WaveformView.cpp
     Source/ui/SequenceBrowser.cpp
     Source/ui/PatternView.cpp
-    Source/ui/PadPanel.cpp
-    Source/ui/ProjectsOverlay.cpp)
+    Source/ui/ProjectsOverlay.cpp
+    Source/ui/Hardware.cpp
+    Source/ui/DisplayScreen.cpp)
 
 target_include_directories(PadPorter PRIVATE Source)
 

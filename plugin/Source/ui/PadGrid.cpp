@@ -17,15 +17,24 @@ PadGrid::~PadGrid()
     stopTimer();
 }
 
+namespace
+{
+// Shift functions printed below the pads, pad 1 first.
+const char* const kPadCaptions[] { "FULL LEVEL", "HALF SEQ", "DOUBLE SEQ", "COUNT-IN", "COMPRESSOR", "HALF SPEED", "DOUBLE SPEED", "MIDI CONFIG",
+                                    "FADER", "REC QUANTIZE", "RESAMPLE", "SONG", "TRIM SAMPLE", "TIME CORRECT", "WARP", "PROJECT" };
+
+// Pad positions inside the bed, in photo pixels.
+constexpr float kColumnX[] { 11.0f, 130.0f, 249.0f, 368.0f };
+constexpr float kRowY[] { 9.0f, 128.0f, 247.0f, 366.0f };
+constexpr float kPadWidth = 103.0f;
+constexpr float kPadHeight = 101.0f;
+} // namespace
+
 juce::Rectangle<float> PadGrid::slotBounds (int slot) const
 {
-    const auto area = getLocalBounds().toFloat().reduced (4.0f);
-    const float gap = 8.0f;
-    const float w = (area.getWidth() - 3.0f * gap) / 4.0f;
-    const float h = (area.getHeight() - 3.0f * gap) / 4.0f;
     const int column = slot % 4;
     const int row = 3 - slot / 4; // pad 1 sits bottom-left, like on the hardware
-    return { area.getX() + column * (w + gap), area.getY() + row * (h + gap), w, h };
+    return { kColumnX[column], kRowY[row], kPadWidth, kPadHeight };
 }
 
 int PadGrid::slotAt (juce::Point<float> position) const
@@ -47,72 +56,67 @@ void PadGrid::paint (juce::Graphics& g)
     const int bank = processor.getBank();
     const int selected = processor.getSelectedPad();
 
+    g.setColour (theme::padBed);
+    g.fillRoundedRectangle (getLocalBounds().toFloat(), 4.0f);
+
     for (int slot = 0; slot < kPadsPerBank; ++slot)
     {
         const int padIndex = bank * kPadsPerBank + slot;
         const auto bounds = slotBounds (slot);
         const auto* pad = loaded != nullptr ? loaded->pad (padIndex) : nullptr;
         const bool hasSample = pad != nullptr && pad->hasSample();
-        const bool missing = hasSample && loaded->pads[static_cast<std::size_t> (padIndex)].sample == nullptr;
         const bool active = isPadActive (padIndex);
-        const auto glow = hasSample && processor.getPadRole (padIndex) == PartRole::Melody ? theme::melody : theme::drums;
+        const auto glow = hasSample && processor.getPadRole (padIndex) == PartRole::Melody ? theme::melody : theme::padGlow.interpolatedWith (juce::Colour (0xff8a8cff), 0.6f);
 
-        // Light around the pad in its part colour (blue = drums, orange = melody); bright while playing.
-        if (hasSample || active)
+        // Backlight around the pad: blue = drums, orange = melody; brighter with a sample, full while playing.
+        const float strength = active ? 1.0f : (hasSample ? 0.75f : 0.4f);
+        for (int i = 5; i >= 1; --i)
         {
-            const float strength = active ? 1.0f : 0.45f;
-            for (int i = 4; i >= 1; --i)
-            {
-                g.setColour (glow.withAlpha (strength * 0.13f * static_cast<float> (5 - i)));
-                g.drawRoundedRectangle (bounds.expanded (static_cast<float> (i)), 7.0f + static_cast<float> (i), 2.0f);
-            }
+            g.setColour (glow.withAlpha (strength * 0.09f * static_cast<float> (6 - i)));
+            g.drawRoundedRectangle (bounds.expanded (static_cast<float> (i) * 0.9f), 4.0f + static_cast<float> (i), 1.8f);
         }
 
-        g.setColour (juce::Colours::black.withAlpha (0.25f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 2.0f), 6.0f);
-
-        auto face = hasSample ? theme::padFaceLoaded : theme::padFace;
+        auto face = theme::padFaceHw;
         if (active)
-            face = face.interpolatedWith (glow, 0.45f);
-        g.setGradientFill (juce::ColourGradient (face.brighter (0.06f), bounds.getX(), bounds.getY(),
-                                                 face.darker (0.06f), bounds.getX(), bounds.getBottom(), false));
-        g.fillRoundedRectangle (bounds, 6.0f);
+            face = face.interpolatedWith (glow, 0.35f).brighter (0.1f);
+        g.setGradientFill (juce::ColourGradient (face.brighter (0.05f), bounds.getX(), bounds.getY(),
+                                                 face.darker (0.05f), bounds.getX(), bounds.getBottom(), false));
+        g.fillRoundedRectangle (bounds, 4.0f);
 
-        if (padIndex == selected)
-        {
-            g.setColour (theme::caption);
-            g.drawRoundedRectangle (bounds.reduced (1.5f), 6.0f, 2.5f);
-        }
+        // Lit rim of the silicone pad.
+        g.setColour (padIndex == selected ? theme::padSelected : glow.withAlpha (0.25f + 0.65f * strength));
+        g.drawRoundedRectangle (bounds.reduced (0.8f), 4.0f, padIndex == selected ? 2.4f : 1.6f);
 
-        if (hasSample)
-        {
-            // Part stripe at the bottom edge of the pad.
-            g.setColour (glow);
-            g.fillRoundedRectangle (bounds.getX() + 8.0f, bounds.getBottom() - 5.0f, bounds.getWidth() - 16.0f, 2.5f, 1.25f);
-        }
-
-        auto text = bounds.reduced (6.0f, 4.0f).withTrimmedBottom (4.0f);
-        const auto label = juce::String::charToString (static_cast<juce::juce_wchar> ('A' + bank))
-                         + juce::String (slot + 1).paddedLeft ('0', 2);
-
-        g.setColour (theme::caption.withAlpha (hasSample ? 1.0f : 0.45f));
-        g.setFont (theme::font (10.0f, true));
-        g.drawText (label, text.removeFromTop (12.0f), juce::Justification::topLeft);
-
-        if (hasSample)
-        {
-            g.setFont (theme::font (9.5f));
-            g.setColour (missing ? theme::brandRed : theme::caption.withAlpha (0.85f));
-            const auto name = fromUtf8 (pad->layers.front().sampleName);
-            g.drawFittedText (missing ? "fehlt: " + name : name, text.toNearestInt(), juce::Justification::bottomLeft, 2, 0.8f);
-        }
+        // Printed number and shift function below the pad.
+        const auto caption = juce::Rectangle<float> (bounds.getX(), bounds.getBottom() + 3.0f, bounds.getWidth(), 13.0f);
+        g.setColour (theme::hwLabel);
+        g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
+        g.drawText (juce::String (slot + 1), caption, juce::Justification::centredLeft);
+        g.drawText (kPadCaptions[slot], caption.withTrimmedLeft (18.0f), juce::Justification::centredRight);
     }
+}
+
+void PadGrid::mouseMove (const juce::MouseEvent& e)
+{
+    const int slot = slotAt (e.position);
+    juce::String tip;
+    if (slot >= 0)
+    {
+        const int padIndex = processor.getBank() * kPadsPerBank + slot;
+        const auto* loaded = processor.getLoadedProject();
+        const auto* pad = loaded != nullptr ? loaded->pad (padIndex) : nullptr;
+        tip << juce::String::charToString (static_cast<juce::juce_wchar> ('A' + padIndex / kPadsPerBank))
+            << juce::String (slot + 1).paddedLeft ('0', 2) << juce::String::fromUTF8 ("  ·  ")
+            << (pad != nullptr && pad->hasSample() ? fromUtf8 (pad->layers.front().sampleName) : juce::String ("leer"));
+    }
+    setTooltip (tip);
+    setMouseCursor (slot >= 0 ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
 }
 
 void PadGrid::mouseDown (const juce::MouseEvent& e)
 {
     const int slot = slotAt (e.position);
-    if (slot < 0)
+    if (slot < 0 || (interceptPad && interceptPad (slot)))
         return;
 
     const int padIndex = processor.getBank() * kPadsPerBank + slot;

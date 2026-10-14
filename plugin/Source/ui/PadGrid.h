@@ -8,18 +8,24 @@ namespace padporter::plugin
 {
 class PadPorterProcessor;
 
-/** 4x4 pad view of the current bank, laid out like the hardware (pad 1 bottom-left). */
-class PadGrid final : public juce::Component, private juce::Timer
+/**
+    The black pad bed with the 4x4 pads of the current bank and their printed labels,
+    laid out like the hardware (pad 1 bottom-left).
+*/
+class PadGrid final : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
 public:
     explicit PadGrid (PadPorterProcessor& processor);
     ~PadGrid() override;
 
     std::function<void (int padIndex)> onPadSelected;
+    /** Called first on a click; returning true consumes it (e.g. SHIFT + pad functions). */
+    std::function<bool (int slot)> interceptPad;
 
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseUp (const juce::MouseEvent&) override;
+    void mouseMove (const juce::MouseEvent&) override;
 
 private:
     void timerCallback() override;

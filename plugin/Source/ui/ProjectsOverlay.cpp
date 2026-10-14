@@ -9,16 +9,17 @@ namespace padporter::plugin
 {
 namespace
 {
-constexpr int kTitleHeight = 44;
-constexpr int kColumnHeader = 48;
+constexpr int kBarHeight = 16;
+constexpr int kHeadingHeight = 14;
+constexpr int kActionWidth = 54;
 
 juce::String describe (const ProjectEntry& e)
 {
     juce::String s;
-    s << e.sampleFiles << " Samples" << juce::String::fromUTF8 ("  ·  ")
+    s << e.sampleFiles << " Samples" << juce::String::fromUTF8 (" · ")
       << juce::File::descriptionOfSizeInBytes (static_cast<juce::int64> (e.sizeBytes));
     if (e.modifiedUnix > 0)
-        s << juce::String::fromUTF8 ("  ·  ") << juce::Time (e.modifiedUnix * 1000).formatted ("%d.%m.%Y %H:%M");
+        s << juce::String::fromUTF8 (" · ") << juce::Time (e.modifiedUnix * 1000).formatted ("%d.%m.%y");
     return s;
 }
 
@@ -41,7 +42,7 @@ void ProjectList::setRows (std::vector<Row> newRows, const juce::String& emptyMe
 
 int ProjectList::idealHeight() const noexcept
 {
-    return juce::jmax (3, static_cast<int> (rows.size())) * kRowHeight;
+    return rows.empty() ? kRowHeight + 4 : static_cast<int> (rows.size()) * kRowHeight;
 }
 
 int ProjectList::rowAt (int y) const noexcept
@@ -52,7 +53,7 @@ int ProjectList::rowAt (int y) const noexcept
 
 juce::Rectangle<int> ProjectList::actionBounds (int row) const
 {
-    return { getWidth() - 118, row * kRowHeight + 14, 106, kRowHeight - 28 };
+    return { getWidth() - kActionWidth - 2, row * kRowHeight + 7, kActionWidth, kRowHeight - 14 };
 }
 
 void ProjectList::paint (juce::Graphics& g)
@@ -60,37 +61,37 @@ void ProjectList::paint (juce::Graphics& g)
     if (rows.empty())
     {
         g.setColour (theme::screenDim);
-        g.setFont (theme::font (13.0f));
-        g.drawFittedText (emptyText, getLocalBounds().reduced (12, 8).withHeight (kRowHeight * 3), juce::Justification::centredTop, 6);
+        g.setFont (theme::lcdFont (9.0f));
+        g.drawFittedText (emptyText, getLocalBounds().reduced (4, 2), juce::Justification::centredLeft, 3);
         return;
     }
 
     for (int i = 0; i < static_cast<int> (rows.size()); ++i)
     {
         const auto& row = rows[static_cast<std::size_t> (i)];
-        auto r = juce::Rectangle<int> (0, i * kRowHeight, getWidth(), kRowHeight).reduced (0, 3);
+        auto r = juce::Rectangle<int> (0, i * kRowHeight, getWidth(), kRowHeight).reduced (0, 1);
 
         g.setColour (row.active ? theme::lcdRaised.brighter (0.15f) : (i == hoverRow ? theme::lcdRaised.brighter (0.07f) : theme::lcdRaised));
-        g.fillRoundedRectangle (r.toFloat(), 6.0f);
+        g.fillRect (r);
         if (row.active)
         {
             g.setColour (theme::waveform);
-            g.fillRoundedRectangle (r.toFloat().withWidth (3.0f), 1.5f);
+            g.fillRect (r.withWidth (2));
         }
 
-        auto text = r.reduced (14, 7).withTrimmedRight (116);
+        auto text = r.reduced (6, 2).withTrimmedRight (kActionWidth + 2);
         g.setColour (theme::screenText);
-        g.setFont (theme::font (14.0f, true));
-        g.drawText (row.title, text.removeFromTop (text.getHeight() / 2), juce::Justification::bottomLeft, true);
+        g.setFont (theme::lcdFont (10.0f, true));
+        g.drawText (row.title, text.removeFromTop (text.getHeight() / 2), juce::Justification::centredLeft, true);
         g.setColour (theme::screenDim);
-        g.setFont (theme::font (11.0f));
+        g.setFont (theme::lcdFont (8.0f));
         g.drawText (row.subtitle, text, juce::Justification::centredLeft, true);
 
         const auto button = actionBounds (i).toFloat();
         g.setColour (! row.enabled ? theme::lcdLine : (row.active ? theme::lcdLine.brighter (0.3f) : row.actionColour));
-        g.fillRoundedRectangle (button, 5.0f);
+        g.fillRect (button);
         g.setColour (row.enabled && ! row.active ? theme::lcd : theme::screenText);
-        g.setFont (theme::font (12.0f, true));
+        g.setFont (theme::lcdFont (8.5f, true));
         g.drawText (row.action, button, juce::Justification::centred);
     }
 }
@@ -131,19 +132,24 @@ void ProjectList::mouseDoubleClick (const juce::MouseEvent& e)
 
 ProjectsOverlay::ProjectsOverlay (PadPorterProcessor& p) : processor (p)
 {
-    styleButton (closeButton, juce::String::fromUTF8 ("SCHLIESSEN"));
-    styleButton (rescanButton, "NEU SUCHEN");
+    styleButton (rescanButton, "SUCHEN");
     styleButton (folderButton, "ORDNER");
-    closeButton.onClick = [this] { if (onClose) onClose(); };
+    styleButton (exportButton, "EXPORT");
+    styleButton (detailsButton, "INFO");
+    rescanButton.setTooltip (juce::String::fromUTF8 ("Erneut nach angeschlossenen Geräten suchen"));
+    folderButton.setTooltip (juce::String::fromUTF8 ("Bibliotheksordner im Explorer öffnen"));
+    exportButton.setTooltip ("Samples + MIDI (Alles / Drums / Melodie) + Mapping in einen Ordner exportieren");
+    detailsButton.setTooltip ("Hinweise zum geladenen Projekt");
     rescanButton.onClick = [this] { processor.rescanDevices(); };
     folderButton.onClick = [this] {
         const auto dir = processor.getLibraryDir();
         dir.createDirectory();
         dir.startAsProcess();
     };
-    addAndMakeVisible (closeButton);
-    addAndMakeVisible (rescanButton);
-    addAndMakeVisible (folderButton);
+    exportButton.onClick = [this] { if (onExport) onExport(); };
+    detailsButton.onClick = [this] { if (onDetails) onDetails(); };
+    for (auto* b : { &rescanButton, &folderButton, &exportButton, &detailsButton })
+        addAndMakeVisible (*b);
 
     deviceList.onAction = [this] (int row) {
         if (row >= 0 && row < static_cast<int> (deviceEntries.size()))
@@ -154,14 +160,22 @@ ProjectsOverlay::ProjectsOverlay (PadPorterProcessor& p) : processor (p)
             processor.openProject (toJuceFile (libraryEntries[static_cast<std::size_t> (row)].xpjPath));
     };
 
-    for (auto* v : { &deviceView, &libraryView })
+    for (auto [label, text, colour] : { std::tuple { &deviceHeading, juce::String::fromUTF8 ("AUF DEM GERÄT"), theme::orange },
+                                        std::tuple { &libraryHeading, juce::String ("BIBLIOTHEK"), theme::drums } })
     {
-        v->setScrollBarsShown (true, false);
-        v->setScrollBarThickness (6);
-        addAndMakeVisible (*v);
+        label->setText (text, juce::dontSendNotification);
+        label->setFont (theme::lcdFont (8.5f, true));
+        label->setColour (juce::Label::textColourId, colour);
+        label->setBorderSize ({});
+        content.addAndMakeVisible (*label);
     }
-    deviceView.setViewedComponent (&deviceList, false);
-    libraryView.setViewedComponent (&libraryList, false);
+    content.addAndMakeVisible (deviceList);
+    content.addAndMakeVisible (libraryList);
+
+    view.setScrollBarsShown (true, false);
+    view.setScrollBarThickness (4);
+    view.setViewedComponent (&content, false);
+    addAndMakeVisible (view);
 }
 
 void ProjectsOverlay::refresh()
@@ -179,7 +193,7 @@ void ProjectsOverlay::refresh()
         libraryRows.push_back ({ fromUtf8 (e.name), describe (e), isOpen ? juce::String::fromUTF8 ("GEÖFFNET") : juce::String::fromUTF8 ("ÖFFNEN"),
                                  theme::drums, isOpen, true });
     }
-    libraryList.setRows (std::move (libraryRows), juce::String::fromUTF8 ("Noch nichts importiert.\nImportierte Projekte bleiben hier, auch ohne Gerät."));
+    libraryList.setRows (std::move (libraryRows), juce::String::fromUTF8 ("Noch nichts importiert. Importierte\nProjekte bleiben hier, auch ohne Gerät."));
 
     deviceEntries.clear();
     std::vector<ProjectList::Row> deviceRows;
@@ -194,25 +208,27 @@ void ProjectsOverlay::refresh()
             if (inLibrary)
                 subtitle << juce::String::fromUTF8 ("  ·  importiert");
             deviceRows.push_back ({ fromUtf8 (e.name), subtitle,
-                                    busy ? juce::String ("...") : (inLibrary ? juce::String ("NEU LADEN") : juce::String ("IMPORTIEREN")),
+                                    busy ? juce::String ("...") : (inLibrary ? juce::String ("NEU LADEN") : juce::String ("IMPORT")),
                                     theme::orange, isOpen, ! busy });
             deviceEntries.push_back (e);
         }
 
     deviceList.setRows (std::move (deviceRows),
                         processor.isScanning() ? juce::String::fromUTF8 ("Suche nach Geräten ...")
-                                               : juce::String::fromUTF8 ("Kein Gerät gefunden.\n\nGerät per USB anschließen und dort SD-Card-Access aktivieren.\nDie Projekte erscheinen hier automatisch."));
+                                               : juce::String::fromUTF8 ("Gerät per USB anschließen und dort\nSD-Card-Access aktivieren."));
 
     if (processor.getDevices().empty())
-        deviceStatus = processor.isScanning() ? juce::String ("Suche ...") : juce::String::fromUTF8 ("Nicht verbunden");
+        deviceStatus = processor.isScanning() ? juce::String ("Suche ...") : juce::String::fromUTF8 ("Kein Gerät verbunden");
     else
     {
         deviceStatus.clear();
         for (const auto& v : processor.getDevices())
-            deviceStatus << (v.recognisedLayout ? fromUtf8 (v.deviceName) : juce::String ("Laufwerk")) << " an "
-                         << fromUtf8 (pathToUtf8 (v.root)) << juce::String::fromUTF8 ("  ·  ")
-                         << static_cast<int> (v.projects.size()) << " Projekte   ";
+            deviceStatus << (v.recognisedLayout ? fromUtf8 (v.deviceName) : juce::String ("Laufwerk")) << " "
+                         << fromUtf8 (pathToUtf8 (v.root)) << "  ";
     }
+
+    exportButton.setEnabled (loaded != nullptr && ! processor.isLoading());
+    detailsButton.setEnabled (loaded != nullptr && ! loaded->diagnostics.empty());
 
     resized();
     repaint();
@@ -220,51 +236,40 @@ void ProjectsOverlay::refresh()
 
 void ProjectsOverlay::paint (juce::Graphics& g)
 {
-    g.setColour (theme::lcd);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 6.0f);
-
-    auto area = getLocalBounds().reduced (20, 12);
-    auto title = area.removeFromTop (kTitleHeight);
-    g.setColour (theme::waveform);
-    g.setFont (theme::font (20.0f, true));
-    g.drawText ("PROJEKTE", title, juce::Justification::centredLeft);
-
-    const int half = (area.getWidth() - 24) / 2;
-    auto left = area.removeFromLeft (half);
-    area.removeFromLeft (24);
-    auto right = area;
-
-    auto drawHeader = [&g] (juce::Rectangle<int> column, const juce::String& heading, const juce::String& sub, juce::Colour accent) {
-        auto header = column.removeFromTop (kColumnHeader);
-        g.setColour (accent);
-        g.setFont (theme::font (12.0f, true));
-        g.drawText (heading, header.removeFromTop (22), juce::Justification::centredLeft);
-        g.setColour (theme::screenDim);
-        g.setFont (theme::font (11.0f));
-        g.drawText (sub, header.withTrimmedRight (120), juce::Justification::topLeft, true);
-    };
-
-    drawHeader (left, juce::String::fromUTF8 ("AUF DEM GERÄT"), deviceStatus, theme::orange);
-    drawHeader (right, "BIBLIOTHEK (lokale Kopien)", processor.getLibraryDir().getFullPathName(), theme::drums);
+    auto bar = getLocalBounds().removeFromTop (kBarHeight).withTrimmedRight (rescanButton.getWidth() + 4);
+    const bool connected = ! processor.getDevices().empty();
+    g.setColour (connected ? theme::green.brighter (0.3f) : theme::screenDim);
+    g.fillEllipse (bar.removeFromLeft (7).toFloat().withSizeKeepingCentre (5.0f, 5.0f));
+    bar.removeFromLeft (3);
+    g.setFont (theme::lcdFont (9.0f, true));
+    g.drawText (deviceStatus, bar, juce::Justification::centredLeft, true);
 }
 
 void ProjectsOverlay::resized()
 {
-    auto area = getLocalBounds().reduced (20, 12);
-    auto title = area.removeFromTop (kTitleHeight);
-    closeButton.setBounds (title.removeFromRight (120).withSizeKeepingCentre (120, 28));
+    auto area = getLocalBounds();
+    auto top = area.removeFromTop (kBarHeight);
+    rescanButton.setBounds (top.removeFromRight (48).reduced (0, 1));
 
-    const int half = (area.getWidth() - 24) / 2;
-    auto left = area.removeFromLeft (half);
-    area.removeFromLeft (24);
-    auto right = area;
+    auto bottom = area.removeFromBottom (kBarHeight + 2).withTrimmedTop (2);
+    const int w = (bottom.getWidth() - 6) / 3;
+    folderButton.setBounds (bottom.removeFromLeft (w));
+    bottom.removeFromLeft (3);
+    exportButton.setBounds (bottom.removeFromLeft (w));
+    bottom.removeFromLeft (3);
+    detailsButton.setBounds (bottom);
 
-    rescanButton.setBounds (left.getRight() - 110, left.getY(), 110, 24);
-    folderButton.setBounds (right.getRight() - 110, right.getY(), 110, 24);
-
-    deviceView.setBounds (left.withTrimmedTop (kColumnHeader + 4));
-    libraryView.setBounds (right.withTrimmedTop (kColumnHeader + 4));
-    deviceList.setSize (deviceView.getMaximumVisibleWidth(), deviceList.idealHeight());
-    libraryList.setSize (libraryView.getMaximumVisibleWidth(), libraryList.idealHeight());
+    view.setBounds (area.withTrimmedTop (1));
+    const int width = view.getMaximumVisibleWidth();
+    int y = 0;
+    deviceHeading.setBounds (0, y, width, kHeadingHeight);
+    y += kHeadingHeight;
+    deviceList.setBounds (0, y, width, deviceList.idealHeight());
+    y += deviceList.getHeight() + 2;
+    libraryHeading.setBounds (0, y, width, kHeadingHeight);
+    y += kHeadingHeight;
+    libraryList.setBounds (0, y, width, libraryList.idealHeight());
+    y += libraryList.getHeight();
+    content.setSize (width, y);
 }
 } // namespace padporter::plugin

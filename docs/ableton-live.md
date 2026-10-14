@@ -22,9 +22,9 @@ Live sucht VST3-Plugins unter Windows nur in diesem Systemordner.
 1. Im Browser links auf **Plug-Ins** gehen. Unter **PadPorter** steht der Eintrag **PadPorter**.
 2. Ihn auf eine **MIDI-Spur** ziehen oder doppelklicken.
 3. Das Plugin-Fenster öffnet sich. Falls nicht: Im Device-Titel auf das **Schraubenschlüssel-/Fenster-Symbol** klicken.
-4. **Open Project** klicken (oder die `.xpj`-Datei ins Fenster ziehen) und das Projekt wählen.
+4. Softkey **Projekte** über dem Display drücken (oder die `.xpj`-Datei ins Fenster ziehen) und das Projekt öffnen.
 
-Jetzt spielen MIDI-Noten der Spur die Pads. Die Noten kommen aus dem Projekt; Standard ist Pad A01 = C#1 (37) bzw. C1 (36), je nach Projekt. Die Note jedes Pads siehst du oben rechts im Pad und im Inspector.
+Jetzt spielen MIDI-Noten der Spur die Pads. Die Noten kommen aus dem Projekt; Standard ist Pad A01 = C#1 (37) bzw. C1 (36), je nach Projekt. Die Note jedes Pads siehst du im Inspector.
 
 ## 4. Sequences als MIDI-Clips
 

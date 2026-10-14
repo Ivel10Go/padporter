@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 – 2026-10-13
+
+- **Oberfläche als Nachbau des Geräts:** Das Fenster zeigt jetzt die komplette Front im Hochformat, mit allen Tasten, Reglern, Pads und Beschriftungen an ihrer Originalposition (vermessen am Produktfoto). Es lässt sich frei skalieren; die Größe wird im Live-Set gespeichert.
+- **Display wie am Gerät:** drei Reiter über den drei Softkeys. Im Modus **SEQ**: Sequenzen, Pattern, Projekte. Im Modus **SAMPLE**: das gewählte Pad mit Wellenform, Tune/Level/Pan und der Zuordnung Auto/Drums/Melodie. Statusmeldungen erscheinen kurz am unteren Displayrand.
+- **Bedienung über die Hardware-Elemente:** PAD BANK, K1–K3 (Tune/Level/Pan des Pads), Datenrad und –/+, ▶/■ (Vorhören), ERASE (Pad zurücksetzen), PAD FX (Master-Kompressor), MAIN VOLUME, Fader (Global Tune), SHIFT-Funktionen auf den Pads 5, 12 und 16. Die Pegelanzeige zeigt den Ausgang, die grüne LED ein verbundenes Gerät.
+- Herstellername und Modellbezeichnung sind durch PadPorter-eigene Schriftzüge ersetzt.
+
 ## 1.5.0 – 2026-10-13
 
 - **16 Levels (Pitch) wird abgespielt:** Mit 16 Levels aufgenommene Noten tragen am Gerät pro Note einen Tuning-Wert (Halbtöne = (Wert − 0,5) × 240). PadPorter hat sie bisher alle in Originaltonhöhe gespielt. Jetzt erklingen sie in der aufgenommenen Tonhöhe, beim Vorhören, beim Audio-Drag und bei den Pad-Stems. Geprüft an echten Projekten: Bassmelodie 0/−1/−2 und Akkordtöne 0/+4/+7/−1.

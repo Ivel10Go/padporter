@@ -2,11 +2,13 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include <functional>
+
 namespace padporter::plugin
 {
 class PadPorterProcessor;
 
-/** Sequence list on the large display. Click selects, dragging a row exports the whole sequence. */
+/** Sequence list on the display. Click selects, dragging a row exports the whole sequence. */
 class SequenceBrowser final : public juce::Component
 {
 public:
@@ -14,6 +16,9 @@ public:
     ~SequenceBrowser() override;
 
     void refresh();
+
+    /** Double-click on a sequence. */
+    std::function<void()> onSequenceOpened;
 
     void paint (juce::Graphics&) override;
     void resized() override;
